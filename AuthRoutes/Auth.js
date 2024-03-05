@@ -1,26 +1,10 @@
 const express = require("express");
-const dotenv = require("dotenv");
-dotenv.config();
-const cors = require("cors");
-const DB = require("./Database.js");
-const app = express();
-app.use(express.json());
-app.use(cors());
-let port = 8000;
-
-const AddUser = require("./routes/addUser");
-const DeleteUser = require("./routes/deleteUser");
-const ReadUsers = require("./routes/readUsers");
-const UpdateUser = require("./routes/updateUser");
+const router = express.Router();
+const DB = require("../Database.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-app.use("/", AddUser);
-app.use("/", DeleteUser);
-app.use("/", ReadUsers);
-app.use("/", UpdateUser);
-
-app.post("/register", async (req, res) => {
+router.post("/register", async (req, res) => {
   const { Username, Firstname, Lastname, Email, Password } = req.body;
   const EmailVerify = /\S+@\S+\.\S+/;
   if (!Email || !Username || !Firstname || !Lastname || !Password) {
@@ -39,7 +23,6 @@ app.post("/register", async (req, res) => {
             res.status(400).send("Email already exists");
           } else {
             const hashPassword = await bcrypt.hash(Password, 10);
-            console.log(hashPassword);
             DB.query(
               `INSERT INTO users (email,password) VALUES (?,?)`,
               [Email, hashPassword],
@@ -73,7 +56,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   const { Email, Password } = req.body;
   if (!Email || !Password) {
     res.status(400).send("Enter all required fields");
@@ -83,6 +66,7 @@ app.post("/login", async (req, res) => {
       [Email],
       async (err, result) => {
         if (err) {
+          console.error(err);
           return false;
         } else {
           if (result.length > 0) {
@@ -98,10 +82,10 @@ app.post("/login", async (req, res) => {
                 user: user,
               });
             } else {
-              res.status(400).send("Invalid Password");
+              res.status(401).send("Invalid Password");
             }
           } else {
-            res.status(400).send("Invalid Email");
+            res.status(401).send("Invalid Email. Please register first.");
           }
         }
       }
@@ -109,4 +93,4 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.listen(8000, () => console.log(">>>>", 8000));
+module.exports = router;
